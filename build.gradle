@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+    id 'war'
+}
+
+group 'evans18'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+
+    implementation "org.glassfish.jersey.containers:jersey-container-servlet:2.28"
+    implementation "org.glassfish.jersey.inject:jersey-hk2:2.28"
+    implementation "org.glassfish.jersey.bundles.repackaged:jersey-guava:2.26-b03"
+    implementation "javax.xml.bind:jaxb-api:2.4.0-b180830.0359"
+    implementation "com.owlike:genson:1.4"
+    implementation "org.glassfish.jersey.containers:jersey-container-jdk-http:2.28"
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.8.1'
+    // https://mvnrepository.com/artifact/com.github.grumlimited/geocalc
+    implementation 'com.github.grumlimited:geocalc:0.5.8'
+
+}
