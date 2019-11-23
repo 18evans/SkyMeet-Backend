@@ -1,11 +1,9 @@
 package skymeet.resource;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import javax.inject.Singleton;
-import javax.validation.constraints.Null;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -14,7 +12,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import jdk.internal.jline.internal.Nullable;
 import skymeet.Publisher;
 import skymeet.data.ActiveFlightsManager;
 import skymeet.model.Flight;
@@ -31,15 +28,14 @@ public class FlightResources {
 
     private ActiveFlightsManager activeFlightsManager = new ActiveFlightsManager();
 
-    //    {lat}/{lon}/{miles}/")
     @GET
     public String testConnection() {
         return "Success connect :)";
     }
 
     @GET
-    @Path("{lat}/{lon}/{miles}")
-    public Response getFlightsNearLocation(@PathParam("lat") double lat, @PathParam("lon") double lon, @PathParam("miles") int kmRadius) {
+    @Path("{lat}/{lon}/{kmRadius}")
+    public Response getFlightsNearLocation(@PathParam("lat") double lat, @PathParam("lon") double lon, @PathParam("kmRadius") int kmRadius) {
         if (lat > 90 || lat < -90) {
             return Response.serverError().entity("Latitude must be between 90 & -90").build();
         }
@@ -62,6 +58,7 @@ public class FlightResources {
                 responseList.add(flight);
             }
         }
+        System.out.println("\n\n\n");
         System.out.println("ResponseLIST: " + responseList);
 
         Response response = Response.ok().entity(responseList).build();
