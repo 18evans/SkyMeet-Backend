@@ -13,6 +13,8 @@ import skymeet.model.Operator;
 
 public class ActiveFlightsManager {
 
+    private static ActiveFlightsManager instance;
+
     private final List<Flight> flightList = new ArrayList<>();
 
     private static final List<Aircraft> aircraftList = new ArrayList<>(Arrays.asList(
@@ -34,7 +36,11 @@ public class ActiveFlightsManager {
             new Operator("KLM")
     ));
 
-    public ActiveFlightsManager() {
+    public List<Flight> getFlightList() {
+        return flightList;
+    }
+
+    private ActiveFlightsManager() {
         for (int i = 0; i < aircraftList.size(); i++) {
             final Aircraft aircraft = aircraftList.get(i);
             this.flightList.add(
@@ -45,7 +51,10 @@ public class ActiveFlightsManager {
         }
     }
 
-    public List<Flight> getFlightList() {
-        return flightList;
+    public static ActiveFlightsManager getInstance() {
+        if (instance == null) {
+            instance = new ActiveFlightsManager();
+        }
+        return instance;
     }
 }

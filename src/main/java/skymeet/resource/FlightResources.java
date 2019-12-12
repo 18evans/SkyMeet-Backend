@@ -26,7 +26,7 @@ public class FlightResources {
 
     private static final int DEFAULT_RADIUS_KM = 100;
 
-    private ActiveFlightsManager activeFlightsManager = new ActiveFlightsManager();
+    private ActiveFlightsManager activeFlightsManager = ActiveFlightsManager.getInstance();
 
     @GET
     public String testConnection() {
