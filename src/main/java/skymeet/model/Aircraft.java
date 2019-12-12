@@ -1,5 +1,7 @@
 package skymeet.model;
 
+import com.google.gson.Gson;
+
 public class Aircraft {
 
     private static int NEXT_ID = 1;
@@ -32,5 +34,10 @@ public class Aircraft {
         this.aircraftId = NEXT_ID++;
         this.callsign = callsign;
         this.tailsign = tailsign;
+    }
+
+    @Override
+    public String toString() {
+        return new Gson().toJson(this);
     }
 }

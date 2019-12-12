@@ -1,5 +1,7 @@
 package skymeet.model;
 
+import com.google.gson.Gson;
+
 public class Location {
 
     private double latitude;
@@ -26,4 +28,8 @@ public class Location {
         this.longitude = longitude;
     }
 
+    @Override
+    public String toString() {
+        return new Gson().toJson(this);
+    }
 }
