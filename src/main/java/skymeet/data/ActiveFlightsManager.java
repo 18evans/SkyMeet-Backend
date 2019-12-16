@@ -42,7 +42,6 @@ public class ActiveFlightsManager {
 
     private ActiveFlightsManager() {
         for (int i = 0; i < aircraftList.size(); i++) {
-            final Aircraft aircraft = aircraftList.get(i);
             this.flightList.add(
                     new Flight(aircraftList.get(i),
                     new ArrayList<>(Collections.singletonList(flightPositionList.get(i))),

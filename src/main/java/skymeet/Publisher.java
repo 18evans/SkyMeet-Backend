@@ -1,37 +1,83 @@
 package skymeet;
 
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
+
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.nio.file.NoSuchFileException;
 import java.util.List;
 
 import javax.ws.rs.core.UriBuilder;
 
 import skymeet.data.ActiveFlightsManager;
+import skymeet.data.FileManager;
 import skymeet.model.Flight;
 import skymeet.model.Location;
+import skymeet.resource.FirebaseTokenResources;
 import skymeet.resource.FlightResources;
+import skymeet.util.DistanceHelper;
 
 // The Java class will be hosted at the URI path "/helloworld"
 public class Publisher {
 
     public static final String resourceFlightsNear = "flightsNear";
     private static final int PORT = 9095;
-    private static final String URL = "http://localhost:" + PORT + "/";
+    private static final String URL = "http://192.168.178.18:" + PORT + "/";
 
     public static void main(String[] args) {
+        try {
+            try {
+                FileManager.getInstance().readFirebaseTokenFromFile();
+            } catch (NoSuchFileException e) {
+                System.out.println("A user TOKEN has not been submitted yet. Awaiting app launch...");
+            }
+            try {
+                FileManager.getInstance().readRememberedUserLocationFromFile();
+            } catch (NoSuchFileException e) {
+                System.out.println("A user LOCATION has not been submitted yet. Awaiting app launch...");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
         final URI baseUri = UriBuilder.fromUri(URL).build();
-        ResourceConfig resourceConfig = new ResourceConfig(FlightResources.class);
+        ResourceConfig resourceConfig = new ResourceConfig(FlightResources.class, FirebaseTokenResources.class);
         JdkHttpServerFactory.createHttpServer(baseUri, resourceConfig, true);
         System.out.println("Service hosted at " + baseUri + resourceFlightsNear);
+        System.out.println("Enter \"N!\" in console to test notification...");
         System.out.println("Enter \"D!\" in console to enter developer mode...");
 
-
+        initFirebase();
         prepareDevMode();
+    }
+
+    private static void initFirebase() {
+        try {
+            FileInputStream serviceAccount = new FileInputStream(System.getenv("GOOGLE_APPLICATION_CREDENTIALS"));
+
+            FirebaseOptions options = new FirebaseOptions.Builder()
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                    .setDatabaseUrl("https://skymeet-adcdc.firebaseio.com")
+                    .build();
+
+            FirebaseApp.initializeApp(options);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     private static void showList(List<Flight> list) {
@@ -42,24 +88,38 @@ public class Publisher {
         }
     }
 
+    private static int RANGE_KM_NOTIFICATION = 1; //1km
+
     private static void prepareDevMode() {
         ActiveFlightsManager activeFlightsManager = ActiveFlightsManager.getInstance();
+        List<Flight> flightList = activeFlightsManager.getFlightList();
 
         boolean flagDevMode = false;
+        boolean flagFlightUpdated = false;
+
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
             while (true) {
-                if (flagDevMode || reader.readLine().equals("D!")) {
+                String readLine = null;
+                if (!flagFlightUpdated) {
+                    readLine = reader.readLine();
+                }
+                if (readLine != null && !readLine.equals("N!") && !readLine.equals("D!")) {
+                    continue;
+                }
+
+                if (!flagFlightUpdated && readLine.equals("N!")) {
+                    sendPushNotification(flightList.get(3));
+                } else if (flagDevMode || readLine.equals("D!")) {
                     flagDevMode = true;
                     System.out.println("Entered developer mode! Enter \"q!\" at any point to go back.");
                     System.out.println("");
 
-                    List<Flight> flightList = activeFlightsManager.getFlightList();
                     showList(flightList);
 
                     System.out.println("");
                     System.out.println("Choose flight you'd like to move:");
 
-                    boolean flagFlightUpdated = false;
+                    flagFlightUpdated = false;
                     while (!flagFlightUpdated) {
                         try {
 //                            if (reader.readLine().equals("q!")) {
@@ -75,7 +135,10 @@ public class Publisher {
                             System.out.println("Enter new latitude and longitude of this flight, separated by comma & 1 white space character (eg. \"51.5555, 23.6666\")");
                             System.out.println();
                             while (!flagFlightUpdated) {
-                                line = reader.readLine();
+
+                                do {
+                                    line = reader.readLine();
+                                } while (line == null || line.isEmpty());
                                 try {
                                     if (!line.isEmpty()) {
                                         String[] latlon = line.trim().split(", ");
@@ -91,6 +154,17 @@ public class Publisher {
                                         activeFlightsManager.moveFlight(indexFlight, location);
                                         System.out.println(" to new location - " + location);
                                         System.out.println();
+
+                                        if (indexFlight == 0) //if west flight
+                                        {
+                                            FlightResources.flagWestMoved = true;
+                                            Flight flightWest = flightList.get(0);
+                                            if (DistanceHelper.distanceBetweenLocationsInKm(
+                                                    FlightResources.userLocationLastRemembered,
+                                                    flightWest.getFlightPositions().get(0).getLocation()) <= RANGE_KM_NOTIFICATION) {
+                                                sendPushNotification(flightWest);
+                                            }
+                                        }
 
                                         System.out.println("Updated flight list:");
                                         flagFlightUpdated = true;
@@ -118,4 +192,36 @@ public class Publisher {
         System.out.println();
         System.out.println("Dev mode closed!");
     }
+
+    private static void sendPushNotification(Flight flight) {
+        // This registration token comes from the client FCM SDKs.
+// See documentation on defining a message payload.
+        if (FirebaseTokenResources.demoToken == null || FirebaseTokenResources.demoToken.isEmpty()) {
+            System.err.println("Demo token null. Reset app storage.");
+            return;
+        }
+
+        Message message = Message.builder()
+                .putData("tail_sign", flight.getAircraft().getTailsign())
+                .putData("distance", String.valueOf(RANGE_KM_NOTIFICATION))
+                .setToken(FirebaseTokenResources.demoToken)
+//                .setNotification(new Notification.Builder()
+//                        .setTitle("Nearby tracked flight")
+//                        .setBody("")
+//                        .build(
+//                        "$GOOG up 1.43% on the day",
+//                        "$GOOG gained 11.80 points to close at 835.67, up 1.43% on the day."))
+                .build();
+
+// Send a message to the device corresponding to the provided
+// registration token.
+        try {
+            String response = FirebaseMessaging.getInstance().send(message);
+            System.out.println("Successfully sent message: " + response);
+        } catch (FirebaseMessagingException e) {
+            e.printStackTrace();
+        }
+// Response is a message ID string.
+    }
+
 }
