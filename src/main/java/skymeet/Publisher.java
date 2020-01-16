@@ -6,6 +6,8 @@ import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
+import com.google.gson.Gson;
+import com.pusher.rest.Pusher;
 
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -17,6 +19,9 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.nio.file.NoSuchFileException;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.ws.rs.core.UriBuilder;
 
@@ -31,9 +36,15 @@ import skymeet.util.DistanceHelper;
 // The Java class will be hosted at the URI path "/helloworld"
 public class Publisher {
 
+    private static Pusher pusher = new Pusher(
+            System.getenv("PUSHER_APP_ID"),
+            System.getenv("PUSHER_APP_KEY"),
+            System.getenv("PUSHER_APP_SECRET"));
+
     public static final String resourceFlightsNear = "flightsNear";
     private static final int PORT = 9095;
     private static final String URL = "http://192.168.178.18:" + PORT + "/";
+//    private static final ExecutorService pool = Executors.newSingleThreadScheduledExecutor();
 
     public static void main(String[] args) {
         try {
@@ -57,9 +68,11 @@ public class Publisher {
         JdkHttpServerFactory.createHttpServer(baseUri, resourceConfig, true);
         System.out.println("Service hosted at " + baseUri + resourceFlightsNear);
         System.out.println("Enter \"N!\" in console to test notification...");
+        System.out.println("Enter \"P!\" in console to test trigger Pusher message...");
         System.out.println("Enter \"D!\" in console to enter developer mode...");
 
-        initFirebase();
+//        initFirebase();
+        initPusher();
         prepareDevMode();
     }
 
@@ -77,7 +90,69 @@ public class Publisher {
             e.printStackTrace();
         }
 
+    }
 
+    private static void initPusher() {
+        pusher.setCluster("eu");
+    }
+
+    private static class LocationItemPusher {
+        private String latitude;
+        private String longitude;
+        private String heading = "360";
+
+        private LocationItemPusher(Location location) {
+            this.latitude = String.valueOf(location.getLatitude());
+            this.longitude = String.valueOf(location.getLongitude());
+        }
+
+        private LocationItemPusher(Location location, String heading) {
+            this.latitude = String.valueOf(location.getLatitude());
+            this.longitude = String.valueOf(location.getLongitude());
+            this.heading = heading;
+        }
+
+        @Override
+        public String toString() {
+            return new Gson().toJson(this);
+        }
+    }
+
+    private static void triggerPusherMessage() {
+//        LocationItemPusher arrLocation = new LocationItemPusher(new Location(51.441643, 5.469722), "360");
+        LocationItemPusher[] arrLocation = new LocationItemPusher[]{
+                new LocationItemPusher(new Location(51.441643, 5.469722)),
+                new LocationItemPusher(new Location(51.440318, 5.468905)),
+                new LocationItemPusher(new Location(51.439435, 5.468983)),
+                new LocationItemPusher(new Location(51.438713, 5.468983)),
+                new LocationItemPusher(new Location(51.438579, 5.470186)),
+                new LocationItemPusher(new Location(51.438525, 5.471818)),
+                new LocationItemPusher(new Location(51.437937, 5.471646)),
+                new LocationItemPusher(new Location(51.437520, 5.470796)),
+                new LocationItemPusher(new Location(51.437373, 5.470839)),
+                new LocationItemPusher(new Location(51.437224, 5.471026)),
+                new LocationItemPusher(new Location(51.437097, 5.471162)),
+                new LocationItemPusher(new Location(51.437010, 5.471318)),
+                new LocationItemPusher(new Location(51.436927, 5.471418)),
+                new LocationItemPusher(new Location(51.436840, 5.471526)),
+        };
+
+        final AtomicInteger index = new AtomicInteger(0);
+        Timer timer = new Timer(); // creating timer
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+                int i = index.get();
+                System.out.println("Triggered " + index + " " + arrLocation[i].toString());
+                pusher.trigger("private-channel", "new-location", arrLocation[i]);
+                if (i == arrLocation.length - 1) {
+                    timer.cancel();
+                }
+                index.incrementAndGet();
+            }
+        }; // creating timer task
+        // scheduling the task for repeated fixed-delay execution, beginning after the specified delay
+        timer.schedule(task, 0, 2000);
     }
 
     private static void showList(List<Flight> list) {
@@ -103,12 +178,14 @@ public class Publisher {
                 if (!flagFlightUpdated) {
                     readLine = reader.readLine();
                 }
-                if (readLine != null && !readLine.equals("N!") && !readLine.equals("D!")) {
+                if (readLine != null && !readLine.equals("N!") && !readLine.equals("D!") && !readLine.equals("P!")) {
                     continue;
                 }
 
                 if (!flagFlightUpdated && readLine.equals("N!")) {
                     sendPushNotification(flightList.get(3));
+                } else if (!flagFlightUpdated && readLine.equals("P!")) {
+                    triggerPusherMessage();
                 } else if (flagDevMode || readLine.equals("D!")) {
                     flagDevMode = true;
                     System.out.println("Entered developer mode! Enter \"q!\" at any point to go back.");
