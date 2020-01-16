@@ -6,8 +6,6 @@ import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
-import com.google.gson.Gson;
-import com.pusher.rest.Pusher;
 
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -18,15 +16,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.nio.file.NoSuchFileException;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.ws.rs.core.UriBuilder;
 
 import skymeet.data.ActiveFlightsManager;
 import skymeet.data.FileManager;
+import skymeet.data.FlightMoverManager;
 import skymeet.model.Flight;
 import skymeet.model.Location;
 import skymeet.resource.FirebaseTokenResources;
@@ -35,11 +30,6 @@ import skymeet.util.DistanceHelper;
 
 // The Java class will be hosted at the URI path "/helloworld"
 public class Publisher {
-
-    private static Pusher pusher = new Pusher(
-            System.getenv("PUSHER_APP_ID"),
-            System.getenv("PUSHER_APP_KEY"),
-            System.getenv("PUSHER_APP_SECRET"));
 
     public static final String resourceFlightsNear = "flightsNear";
     private static final int PORT = 9095;
@@ -67,12 +57,12 @@ public class Publisher {
         ResourceConfig resourceConfig = new ResourceConfig(FlightResources.class, FirebaseTokenResources.class);
         JdkHttpServerFactory.createHttpServer(baseUri, resourceConfig, true);
         System.out.println("Service hosted at " + baseUri + resourceFlightsNear);
+        System.out.println("Enter \"M!\" in console to test moving the flights...");
         System.out.println("Enter \"N!\" in console to test notification...");
-        System.out.println("Enter \"P!\" in console to test trigger Pusher message...");
+//        System.out.println("Enter \"P!\" in console to test trigger Pusher message...");
         System.out.println("Enter \"D!\" in console to enter developer mode...");
 
 //        initFirebase();
-        initPusher();
         prepareDevMode();
     }
 
@@ -92,82 +82,38 @@ public class Publisher {
 
     }
 
-    private static void initPusher() {
-        pusher.setCluster("eu");
-    }
-
-    private static class LocationItemPusher {
-        private String latitude;
-        private String longitude;
-        private String heading = "360";
-
-        private LocationItemPusher(Location location) {
-            this.latitude = String.valueOf(location.getLatitude());
-            this.longitude = String.valueOf(location.getLongitude());
-        }
-
-        private LocationItemPusher(Location location, String heading) {
-            this.latitude = String.valueOf(location.getLatitude());
-            this.longitude = String.valueOf(location.getLongitude());
-            this.heading = heading;
-        }
-
-        @Override
-        public String toString() {
-            return new Gson().toJson(this);
-        }
-    }
-
-    private static void triggerPusherMessage() {
-//        LocationItemPusher arrLocation = new LocationItemPusher(new Location(51.441643, 5.469722), "360");
-        LocationItemPusher[] arrLocation = new LocationItemPusher[]{
-                new LocationItemPusher(new Location(51.441643, 5.469722)),
-                new LocationItemPusher(new Location(51.440318, 5.468905)),
-                new LocationItemPusher(new Location(51.439435, 5.468983)),
-                new LocationItemPusher(new Location(51.438713, 5.468983)),
-                new LocationItemPusher(new Location(51.438579, 5.470186)),
-                new LocationItemPusher(new Location(51.438525, 5.471818)),
-                new LocationItemPusher(new Location(51.437937, 5.471646)),
-                new LocationItemPusher(new Location(51.437520, 5.470796)),
-                new LocationItemPusher(new Location(51.437373, 5.470839)),
-                new LocationItemPusher(new Location(51.437224, 5.471026)),
-                new LocationItemPusher(new Location(51.437097, 5.471162)),
-                new LocationItemPusher(new Location(51.437010, 5.471318)),
-                new LocationItemPusher(new Location(51.436927, 5.471418)),
-                new LocationItemPusher(new Location(51.436840, 5.471526)),
-        };
-
-        final AtomicInteger index = new AtomicInteger(0);
-        Timer timer = new Timer(); // creating timer
-        TimerTask task = new TimerTask() {
-            @Override
-            public void run() {
-                int i = index.get();
-                System.out.println("Triggered " + index + " " + arrLocation[i].toString());
-                pusher.trigger("private-channel", "new-location", arrLocation[i]);
-                if (i == arrLocation.length - 1) {
-                    timer.cancel();
-                }
-                index.incrementAndGet();
-            }
-        }; // creating timer task
-        // scheduling the task for repeated fixed-delay execution, beginning after the specified delay
-        timer.schedule(task, 0, 2000);
-    }
-
-    private static void showList(List<Flight> list) {
+    public static void printFlightList() {
+        System.out.println();
+        System.out.println();
         System.out.println("Flight list:");
-        for (int i = 0; i < list.size(); i++) {
-            Flight flight = list.get(i);
+        for (int i = 0; i < ActiveFlightsManager.getInstance().getFlightList().size(); i++) {
+            Flight flight = ActiveFlightsManager.getInstance().getFlightList().get(i);
             System.out.println("#" + i + ": " + flight);
         }
+        System.out.println();
+        System.out.println();
     }
+
+    public static void printFlightListLatestLocation() {
+        System.out.println();
+        System.out.println();
+        System.out.println("Flight list:");
+        for (int i = 0; i < ActiveFlightsManager.getInstance().getFlightList().size(); i++) {
+            Flight flight = ActiveFlightsManager.getInstance().getFlightList().get(i);
+            System.out.println("#" + i + ":" +
+                    "\nFlight Aircraft: " + flight.getAircraft() +
+                    "\nOperator: " + flight.getOperatedBy() +
+                    "\nLatest flight position: " + flight.getLastFlightPosition()
+            );
+        }
+        System.out.println();
+        System.out.println();
+    }
+
 
     private static int RANGE_KM_NOTIFICATION = 1; //1km
 
     private static void prepareDevMode() {
-        ActiveFlightsManager activeFlightsManager = ActiveFlightsManager.getInstance();
-        List<Flight> flightList = activeFlightsManager.getFlightList();
 
         boolean flagDevMode = false;
         boolean flagFlightUpdated = false;
@@ -178,20 +124,22 @@ public class Publisher {
                 if (!flagFlightUpdated) {
                     readLine = reader.readLine();
                 }
-                if (readLine != null && !readLine.equals("N!") && !readLine.equals("D!") && !readLine.equals("P!")) {
+                if (readLine != null && !readLine.equals("M!") && !readLine.equals("N!") && !readLine.equals("D!") /*&& !readLine.equals("P!")*/) {
                     continue;
                 }
 
                 if (!flagFlightUpdated && readLine.equals("N!")) {
-                    sendPushNotification(flightList.get(3));
-                } else if (!flagFlightUpdated && readLine.equals("P!")) {
-                    triggerPusherMessage();
+                    sendPushNotification(ActiveFlightsManager.getInstance().getFlightList().get(3));
+//                } else if (!flagFlightUpdated && readLine.equals("P!")) {
+//                    triggerPusherMessage();
+                } else if (!flagFlightUpdated && readLine.equals("M!")) {
+                    FlightMoverManager.startMovingFlights();
                 } else if (flagDevMode || readLine.equals("D!")) {
                     flagDevMode = true;
                     System.out.println("Entered developer mode! Enter \"q!\" at any point to go back.");
                     System.out.println("");
 
-                    showList(flightList);
+                    printFlightList();
 
                     System.out.println("");
                     System.out.println("Choose flight you'd like to move:");
@@ -226,16 +174,16 @@ public class Publisher {
                                         double lat = Double.parseDouble(latlon[0]);
                                         double lon = Double.parseDouble(latlon[1]);
 
-                                        System.out.print("Moved flight - " + flightList.get(indexFlight).getAircraft());
+                                        System.out.print("Moved flight - " + ActiveFlightsManager.getInstance().getFlightList().get(indexFlight).getAircraft());
                                         Location location = new Location(lat, lon);
-                                        activeFlightsManager.moveFlight(indexFlight, location);
+                                        FlightMoverManager.moveFlight(ActiveFlightsManager.getInstance().getFlightList().get(indexFlight), location);
                                         System.out.println(" to new location - " + location);
                                         System.out.println();
 
                                         if (indexFlight == 0) //if west flight
                                         {
                                             FlightResources.flagWestMoved = true;
-                                            Flight flightWest = flightList.get(0);
+                                            Flight flightWest = ActiveFlightsManager.getInstance().getFlightList().get(0);
                                             if (DistanceHelper.distanceBetweenLocationsInKm(
                                                     FlightResources.userLocationLastRemembered,
                                                     flightWest.getFlightPositions().get(0).getLocation()) <= RANGE_KM_NOTIFICATION) {

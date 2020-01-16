@@ -39,6 +39,14 @@ public class Flight {
         this.flightPositions = flightPositions;
     }
 
+    public void addFlightPosition(FlightPosition flightPosition) {
+        this.flightPositions.add(flightPosition);
+    }
+
+    public FlightPosition getLastFlightPosition() {
+        return this.flightPositions.get(flightPositions.size() - 1);
+    }
+
     @Override
     public String toString() {
         return new Gson().toJson(this);

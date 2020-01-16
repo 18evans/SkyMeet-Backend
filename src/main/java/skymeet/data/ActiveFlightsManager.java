@@ -57,12 +57,4 @@ public class ActiveFlightsManager {
         return instance;
     }
 
-    public void moveFlight(Flight flight, Location location) {
-        int index = flightList.indexOf(flight);
-        flightList.get(index).setFlightPositions(Collections.singletonList(new FlightPosition(location)));
-    }
-
-    public void moveFlight(int index, Location location) {
-        flightList.get(index).setFlightPositions(Collections.singletonList(new FlightPosition(location)));
-    }
 }
