@@ -1,10 +1,11 @@
 package skymeet.data;
 
 import com.pusher.rest.Pusher;
+import com.pusher.rest.data.Result;
 
 import java.util.List;
 
-import skymeet.model.Flight;
+import skymeet.model.response.FlightIdWithPositionResponse;
 
 public class PusherManager {
 
@@ -19,8 +20,9 @@ public class PusherManager {
     }
 
 
-    public static void triggerPushFlightsMoved(List<Flight> flightList) {
-        pusher.trigger("private-channel", "new-location", flightList);
+    public static void triggerFlightsMoved(List<FlightIdWithPositionResponse> flightList) {
+        Result response = pusher.trigger("active_flights", "new-location", flightList);
+        System.out.println("Pusher trigger made with response:\nstatus: " + response.getStatus() + "\nmessage: " + response.getMessage());
     }
 
 //    private static class LocationItemPusher extends Location {

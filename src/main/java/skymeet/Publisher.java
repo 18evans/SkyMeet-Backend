@@ -133,7 +133,7 @@ public class Publisher {
 //                } else if (!flagFlightUpdated && readLine.equals("P!")) {
 //                    triggerPusherMessage();
                 } else if (!flagFlightUpdated && readLine.equals("M!")) {
-                    FlightMoverManager.startMovingFlights();
+                    FlightMoverManager.getInstance().startMovingFlights();
                 } else if (flagDevMode || readLine.equals("D!")) {
                     flagDevMode = true;
                     System.out.println("Entered developer mode! Enter \"q!\" at any point to go back.");
