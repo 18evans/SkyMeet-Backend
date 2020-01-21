@@ -64,7 +64,7 @@ public class Publisher {
 //        System.out.println("Enter \"P!\" in console to test trigger Pusher message...");
         System.out.println("Enter \"D!\" in console to enter developer mode...");
 
-//        initFirebase();
+        initFirebase();
         prepareDevMode();
     }
 
@@ -182,15 +182,11 @@ public class Publisher {
                                         System.out.println(" to new location - " + location);
                                         System.out.println();
 
-                                        if (indexFlight == 0) //if west flight
-                                        {
-                                            FlightNearResource.flagWestMoved = true;
-                                            Flight flightWest = ActiveFlightsManager.getInstance().getFlightList().get(0);
-                                            if (DistanceHelper.distanceBetweenLocationsInKm(
-                                                    FlightNearResource.userLocationLastRemembered,
-                                                    flightWest.getFlightPositions().get(0).getLocation()) <= RANGE_KM_NOTIFICATION) {
-                                                sendPushNotification(flightWest);
-                                            }
+                                        FlightNearResource.flagWestMoved = true;
+                                        if (DistanceHelper.distanceBetweenLocationsInKm(
+                                                FlightNearResource.userLocationLastRemembered,
+                                                ActiveFlightsManager.getInstance().getFlightList().get(indexFlight).getLastFlightPosition().getLocation()) <= RANGE_KM_NOTIFICATION) {
+                                            sendPushNotification(ActiveFlightsManager.getInstance().getFlightList().get(indexFlight));
                                         }
 
                                         System.out.println("Updated flight list:");
@@ -243,7 +239,8 @@ public class Publisher {
 // Send a message to the device corresponding to the provided
 // registration token.
         try {
-            String response = FirebaseMessaging.getInstance().send(message);
+            String response = FirebaseMessaging.getInstance()
+                    .send(message);
             System.out.println("Successfully sent message: " + response);
         } catch (FirebaseMessagingException e) {
             e.printStackTrace();

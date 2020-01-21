@@ -6,7 +6,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import skymeet.Publisher;
 import skymeet.model.Flight;
 import skymeet.model.FlightPosition;
 import skymeet.model.Location;
@@ -47,7 +46,7 @@ public class FlightMoverManager {
                     listResponse.add(new FlightIdWithPositionResponse(flight));
                 }
                 PusherManager.triggerFlightsMoved(listResponse);
-                Publisher.printFlightListLatestLocation(); //reprint the list of flights with the latest positions after each move
+//                Publisher.printFlightListLatestLocation(); //reprint the list of flights with the latest positions after each move
             }
         }, 0, INTERVAL_UPDATE_FLIGHT_POSITION);
     }

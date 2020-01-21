@@ -22,7 +22,8 @@ public class PusherManager {
 
     public static void triggerFlightsMoved(List<FlightIdWithPositionResponse> flightList) {
         Result response = pusher.trigger("active_flights", "new-location", flightList);
-        System.out.println("Pusher trigger made with response:\nstatus: " + response.getStatus() + "\nmessage: " + response.getMessage());
+        if (response.getStatus() != Result.Status.SUCCESS)
+            System.out.println("Pusher trigger made with response:\nstatus: " + response.getStatus() + "\nmessage: " + response.getMessage());
     }
 
 //    private static class LocationItemPusher extends Location {
