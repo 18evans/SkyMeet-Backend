@@ -24,10 +24,10 @@ public class ActiveFlightsManager {
             new Aircraft("BA5A6Y", "ASGAD787")
     ));
     private static final List<FlightPosition> flightPositionList = new ArrayList<>(Arrays.asList(
-            new FlightPosition(new Location(51.429515, 5.348602)),
-            new FlightPosition(new Location(51.540720, 5.442034)),
-            new FlightPosition(new Location(51.442825, 5.646201)),
-            new FlightPosition(new Location(51.355705, 5.707136))
+            new FlightPosition(new Location(51.459956, 5.215027)), //W
+            new FlightPosition(new Location(51.612280, 5.442877)), //N
+            new FlightPosition(new Location(51.465490, 5.876176)), //E
+            new FlightPosition(new Location(51.228169, 5.510068))  //S
     ));
     private static final List<Operator> operatorList = new ArrayList<>(Arrays.asList(
             new Operator("British Airlines"),
@@ -42,7 +42,6 @@ public class ActiveFlightsManager {
 
     private ActiveFlightsManager() {
         for (int i = 0; i < aircraftList.size(); i++) {
-            final Aircraft aircraft = aircraftList.get(i);
             this.flightList.add(
                     new Flight(aircraftList.get(i),
                     new ArrayList<>(Collections.singletonList(flightPositionList.get(i))),
@@ -57,4 +56,5 @@ public class ActiveFlightsManager {
         }
         return instance;
     }
+
 }

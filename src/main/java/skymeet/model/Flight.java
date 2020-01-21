@@ -1,10 +1,19 @@
 package skymeet.model;
 
+import com.google.gson.Gson;
+
 import java.util.List;
 
 public class Flight {
     private Aircraft aircraft;
     private Operator operatedBy;
+    private List<FlightPosition> flightPositions;
+
+    public Flight(Aircraft aircraft, List<FlightPosition> flightPositions, Operator operatedBy) {
+        this.aircraft = aircraft;
+        this.flightPositions = flightPositions;
+        this.operatedBy = operatedBy;
+    }
 
     public Operator getOperatedBy() {
         return operatedBy;
@@ -13,8 +22,6 @@ public class Flight {
     public void setOperatedBy(Operator operatedBy) {
         this.operatedBy = operatedBy;
     }
-
-    private List<FlightPosition> flightPositions;
 
     public Aircraft getAircraft() {
         return aircraft;
@@ -32,9 +39,16 @@ public class Flight {
         this.flightPositions = flightPositions;
     }
 
-    public Flight(Aircraft aircraft, List<FlightPosition> flightPositions, Operator operatedBy) {
-        this.aircraft = aircraft;
-        this.flightPositions = flightPositions;
-        this.operatedBy = operatedBy;
+    public void addFlightPosition(FlightPosition flightPosition) {
+        this.flightPositions.add(flightPosition);
+    }
+
+    public FlightPosition getLastFlightPosition() {
+        return this.flightPositions.get(flightPositions.size() - 1);
+    }
+
+    @Override
+    public String toString() {
+        return new Gson().toJson(this);
     }
 }
