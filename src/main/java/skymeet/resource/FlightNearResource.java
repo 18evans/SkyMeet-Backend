@@ -25,7 +25,7 @@ import skymeet.util.DistanceHelper;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Path(Publisher.resourceFlightsNear)
-public class FlightResources {
+public class FlightNearResource {
 
     private static final int DEFAULT_RADIUS_KM = 100;
 

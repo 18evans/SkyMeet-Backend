@@ -15,7 +15,7 @@ import skymeet.data.FileManager;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Path("firebase/tokens")
-public class FirebaseTokenResources {
+public class FirebaseTokenResource {
 
 
     public static String demoToken;

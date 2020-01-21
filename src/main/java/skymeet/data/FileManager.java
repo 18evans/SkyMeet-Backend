@@ -8,8 +8,8 @@ import java.nio.file.Paths;
 
 import skymeet.model.Location;
 
-import static skymeet.resource.FirebaseTokenResources.demoToken;
-import static skymeet.resource.FlightResources.userLocationLastRemembered;
+import static skymeet.resource.FirebaseTokenResource.demoToken;
+import static skymeet.resource.FlightNearResource.userLocationLastRemembered;
 
 public class FileManager {
     public static final String PATHNAME_USER_TOKEN = "userToken.txt";

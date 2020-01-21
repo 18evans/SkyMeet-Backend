@@ -24,14 +24,16 @@ import skymeet.data.FileManager;
 import skymeet.data.FlightMoverManager;
 import skymeet.model.Flight;
 import skymeet.model.Location;
-import skymeet.resource.FirebaseTokenResources;
-import skymeet.resource.FlightResources;
+import skymeet.resource.FirebaseTokenResource;
+import skymeet.resource.FlightNearResource;
+import skymeet.resource.FlightResource;
 import skymeet.util.DistanceHelper;
 
 // The Java class will be hosted at the URI path "/helloworld"
 public class Publisher {
 
     public static final String resourceFlightsNear = "flightsNear";
+    public static final String resourceFlight = "flights";
     private static final int PORT = 9095;
     private static final String URL = "http://192.168.178.18:" + PORT + "/";
 //    private static final ExecutorService pool = Executors.newSingleThreadScheduledExecutor();
@@ -54,7 +56,7 @@ public class Publisher {
         }
 
         final URI baseUri = UriBuilder.fromUri(URL).build();
-        ResourceConfig resourceConfig = new ResourceConfig(FlightResources.class, FirebaseTokenResources.class);
+        ResourceConfig resourceConfig = new ResourceConfig(FlightNearResource.class, FlightResource.class, FirebaseTokenResource.class);
         JdkHttpServerFactory.createHttpServer(baseUri, resourceConfig, true);
         System.out.println("Service hosted at " + baseUri + resourceFlightsNear);
         System.out.println("Enter \"M!\" in console to test moving the flights...");
@@ -182,10 +184,10 @@ public class Publisher {
 
                                         if (indexFlight == 0) //if west flight
                                         {
-                                            FlightResources.flagWestMoved = true;
+                                            FlightNearResource.flagWestMoved = true;
                                             Flight flightWest = ActiveFlightsManager.getInstance().getFlightList().get(0);
                                             if (DistanceHelper.distanceBetweenLocationsInKm(
-                                                    FlightResources.userLocationLastRemembered,
+                                                    FlightNearResource.userLocationLastRemembered,
                                                     flightWest.getFlightPositions().get(0).getLocation()) <= RANGE_KM_NOTIFICATION) {
                                                 sendPushNotification(flightWest);
                                             }
@@ -221,7 +223,7 @@ public class Publisher {
     private static void sendPushNotification(Flight flight) {
         // This registration token comes from the client FCM SDKs.
 // See documentation on defining a message payload.
-        if (FirebaseTokenResources.demoToken == null || FirebaseTokenResources.demoToken.isEmpty()) {
+        if (FirebaseTokenResource.demoToken == null || FirebaseTokenResource.demoToken.isEmpty()) {
             System.err.println("Demo token null. Reset app storage.");
             return;
         }
@@ -229,7 +231,7 @@ public class Publisher {
         Message message = Message.builder()
                 .putData("tail_sign", flight.getAircraft().getTailsign())
                 .putData("distance", String.valueOf(RANGE_KM_NOTIFICATION))
-                .setToken(FirebaseTokenResources.demoToken)
+                .setToken(FirebaseTokenResource.demoToken)
 //                .setNotification(new Notification.Builder()
 //                        .setTitle("Nearby tracked flight")
 //                        .setBody("")
